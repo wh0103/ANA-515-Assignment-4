@@ -1,0 +1,96 @@
+---
+title: "ANA 515 Assignment 4"
+author: "William Halim"
+date: '2022-10-16'
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#1 Business problem and goal
+In 2015, the Mayor of NYC claimed that Uber was creating an additional traffic and congestion in Manhattan. To evaluate the validity of the argument, the city did a study of Uber’s trip data to determine the number of rides per day, time and date of the rides, trips per month, etc. Eventually, heat maps were created using the data to see where Uber rides were picking up its riders in NYC. This information was used in various articles published by FiveThirtyEight.
+
+#2 Data retreival and information
+I got the data of Uber Pickups Dataset from Data Flair. However, the data was originally obtained by FiveThirtyEight on July 20, 2015 through the submittal of a Freedom of Information Law request to the NYC Taxi and Limousine Commission (TLC). The dataset is composed of information from 4.5 million Uber pickups in New York City from April 2014 to September 2014. In addition, the dataset includes data from 14.3 million Uber pickups from January 2015 to June 2015. All in all, the data is split to 6 different CSV files. Each file has four columns – Data and Time, Latitude, Longitude, and Base of the pickup. The Base is the TLC base company code affiliated with the Uber pickup.
+
+#3 Importing data and installing packages
+To start the project, I installed the following R packages: ggplot2, dplyr, tidyr, ggthemes, scales, lubridate, and DT. Next, I imported all of the data sets as CSV files into R through the working directory. Then, I created the vectors of the colors that I will use in my plots.
+
+```{r}
+setwd("~/Downloads/archive/Uber Dataset")
+Apr_data <- read.csv("uber-raw-data-apr14.csv")
+May_data <- read.csv("uber-raw-data-may14.csv")
+Jun_data <- read.csv("uber-raw-data-jun14.csv")
+Jul_data <- read.csv("uber-raw-data-jul14.csv")
+Aug_data <- read.csv("uber-raw-data-aug14.csv")
+Sep_data <- read.csv("uber-raw-data-sep14.csv")
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggthemes)
+library(scales)
+library(lubridate)
+library(DT)
+colors = c("#CC1011", "#665555", "#05a399", "#cfcaca", "#f5e840", "#0683c9", "#e075b0")
+```
+
+#4 Describing the data set
+The original data sets have 4 columns each as described earlier. It consists of: Date.Time, Lat, Lon, and Base. In addition, the number of rows in each data set varies from 564516 (April) to 1028136 (September). The summary function shows the min, median, mean, and max of each latitude and longitude variable of each data set.
+```{r}
+colnames(Apr_data)
+summary(Apr_data)
+summary(May_data)
+summary(Jun_data)
+summary(Jul_data)
+summary(Aug_data)
+summary(Sep_data)
+```
+
+#5 Data prep and errors
+In this step, I combined all of the month data sets into one 2014 file and added columns for the day, month, year, day of the week, hour, minute, and second. This will help graph and plot all data in different data visualizations. No errors were found with the data sets. 
+```{r}
+Data_2014 <- rbind(Apr_data, May_data, Jun_data, Jul_data, Aug_data, Sep_data)
+Data_2014$Date.Time <- as.POSIXct(Data_2014$Date.Time, format = "%m/%d/%Y %H:%M:%S")
+Data_2014$Time <- format(as.POSIXct(Data_2014$Date.Time, format = "%m/%d/%Y %H:%M:%S"), format="%H:%M:%S")
+Data_2014$Date.Time <- ymd_hms(Data_2014$Date.Time)
+Data_2014$day <- factor(day(Data_2014$Date.Time))
+Data_2014$month <- factor(month(Data_2014$Date.Time, label = TRUE))
+Data_2014$year <- factor(year(Data_2014$Date.Time))
+Data_2014$dayofweek <- factor(wday(Data_2014$Date.Time, label = TRUE))
+Data_2014$hour <- factor(hour(hms(Data_2014$Time)))
+Data_2014$minute <- factor(minute(hms(Data_2014$Time)))
+Data_2014$second <- factor(second(hms(Data_2014$Time)))
+```
+
+#6 Modeling and plots
+The first plot shows the total number of Uber trips per hour. Based on the bar graph, 5:00 PM is the most popular time to take an Uber. 4:00 PM and 3:00 PM are close behind with the number of trips. This data captures the evening rush hour home from work. However, this data was captured pre-pandemic, so I believe that it looks very different in 2020 and 2021.
+
+```{r}
+hour_data <- Data_2014 %>%
+  group_by(hour) %>%
+  dplyr::summarize(Total = n()) 
+ggplot(hour_data, aes(hour, Total)) + 
+  geom_bar( stat = "identity", fill = "steelblue", color = "yellow") +
+  ggtitle("Trips Every Hour") +
+  theme(legend.position = "none") +
+  scale_y_continuous(labels = comma)
+```
+
+The second plot is similar to the first since it still shows the number of trips per hour. However, it breaks up each bar into the number of trips per month during that time. Based on the results, September has more trips at 5:00 PM compared to the other months. In addition, based on the visualization, September looks to have more trips at each hour compared to the other months provided by the data.
+
+```{r}
+month_hour <- Data_2014 %>%
+  group_by(month, hour) %>%
+  dplyr::summarize(Total = n())
+ggplot(month_hour, aes(hour, Total, fill = month)) + 
+  geom_bar( stat = "identity") +
+  ggtitle("Trips by Hour and Month") +
+  scale_y_continuous(labels = comma)
+```
+
+#9 Conclusion
+The R script provided by Data Flair has many other data visualizations with the associated code. However, to reduce the time needed to knit, I only provided these two plots. The plots I included with my code show that most of the Uber trips are taken during the evening rush hour portion of the day in September.
